@@ -1,0 +1,252 @@
+---
+title: "Bellabeat Case Study"
+author: "Blake Meschke"
+date: "2022-10-27"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Installing and loading common packages and libraries
+
+Here is a list below of the packages in used for this Project.
+```{r}
+library(dplyr)
+library(tidyverse)
+library(fs)
+library(ggplot2)
+library(lubridate)
+```
+## Introduction and background
+Bellabeat is a high-tech/health focused company that creates health-focused products for women. For this project, I analyzed The 'FitBit Fitness Tracker Data'. From this data, I gained insight on how consumers use their smart devices.This enabled me to give useful suggestions to help Bellabeat make wise decisions with their future smart products.
+
+## Upload your CSV files to R
+```{r}
+dailyActivity_merged <- read.csv(file = 'dailyActivity_merged.csv')
+dailyCalories_merged<- read.csv(file="dailyCalories_merged.csv")
+dailyIntensities_merged<- read.csv(file="dailyIntensities_merged.csv")
+dailySteps_merged<- read.csv(file="dailySteps_merged.csv")
+heartrate_seconds_merged<- read.csv(file="heartrate_seconds_merged.csv")
+hourlyCalories_merged<- read.csv(file="hourlyCalories_merged.csv")
+hourlyIntensities_merged<- read.csv(file="hourlyIntensities_merged.csv")
+hourlySteps_merged<- read.csv(file="hourlySteps_merged.csv")
+minuteCaloriesNarrow_merged<- read.csv(file="minuteCaloriesNarrow_merged.csv")
+minuteCaloriesWide_merged<- read.csv(file="minuteCaloriesWide_merged.csv")
+minuteIntensitiesNarrow_merged<- read.csv(file="minuteIntensitiesNarrow_merged.csv")
+minuteIntensitiesWide_merged<- read.csv(file="minuteIntensitiesWide_merged.csv")
+minuteMETsNarrow_merged<- read.csv(file="minuteMETsNarrow_merged.csv")
+minuteSleep_merged<- read.csv(file="minuteSleep_merged.csv")
+minuteStepsNarrow_merged<- read.csv(file="minuteStepsNarrow_merged.csv")
+minuteStepsWide_merged<- read.csv(file="minuteStepsWide_merged.csv")
+sleepDay_merged<- read.csv(file="sleepDay_merged.csv")
+weightLogInfo_merged<- read.csv(file="weightLogInfo_merged.csv")
+```
+
+
+## Exploring a few key tables
+The Tables we will be running analysis on that have the most information are as follows. I renamed them out of simplicity.
+```{r}
+dailyact<-dailyActivity_merged 
+heartsec<-heartrate_seconds_merged
+hourstep<-hourlySteps_merged
+sleepday<-sleepDay_merged
+weight<-weightLogInfo_merged
+
+```
+
+## Cleaning data
+From here we can see that most datasets have 0 NA values in all of our datasets, except weight, which has 65 NA values. Looking at the weight data set, all the NA values were in the Fat column. Therefore I decided to remove that column. Also, heartsec and sleepday have some duplicated data.
+```{r}
+sum(is.na(dailyact))
+sum(is.na(heartsec))
+sum(is.na(hourstep))
+sum(is.na(sleepday))
+sum(is.na(weight))
+sum(is.na(dailyCalories_merged))
+sum(is.na(dailyIntensities_merged))
+sum(is.na(dailySteps_merged))
+sum(is.na(hourlyCalories_merged))
+sum(is.na(hourlyIntensities_merged))
+sum(is.na(hourlySteps_merged))
+sum(is.na(minuteCaloriesNarrow_merged))
+sum(is.na(minuteCaloriesWide_merged))
+sum(is.na(minuteIntensitiesNarrow_merged))
+sum(is.na(minuteIntensitiesWide_merged))
+sum(is.na(minuteMETsNarrow_merged))
+sum(is.na(minuteSleep_merged))
+sum(is.na(minuteStepsNarrow_merged))
+sum(is.na(minuteStepsWide_merged))
+
+# removing the fat column in the weight dataset
+weight<-subset(weight, select=-Fat)
+#
+
+sum(duplicated(dailyact))
+sum(duplicated(heartsec))
+sum(duplicated(hourstep))
+sum(duplicated(sleepday))
+sum(duplicated(weight))
+```
+
+I will remove the duplicated data as follows from sleepday. Heartsec has a lot of duplicated data, but looking at the values in contains, it makes sense as to why you can have duplicated values, so I will not remove those values.
+```{r}
+
+sleepday<-sleepday[!duplicated(sleepday),]
+```
+
+
+Now I want to check some of the data types, especially for dates, in some of my important data sets I will be using.
+```{r}
+
+dailyact$ActivityDate<-as.Date(dailyact$ActivityDate,format='%m/%d/%Y') 
+sleepday$SleepDay<-as.Date(sleepday$SleepDay,format ='%m/%d/%Y' )
+heartrate_seconds_merged$Time<-as.POSIXct(heartrate_seconds_merged$Time,format="%m/%d/%Y %H:%M")
+hourlyIntensities_merged$ActivityHour<-as.POSIXct(hourlyIntensities_merged$ActivityHour,format="%m/%d/%Y %H:%M")
+hourstep$ActivityHour<-as.POSIXct(hourstep$ActivityHour,format="%m/%d/%Y %H:%M")
+weight$Date<-as.Date(weight$Date,format = '%m/%d/%Y')
+dailyact<-rename(dailyact,Date=ActivityDate)
+sleepday<-rename(sleepday, Date=SleepDay)
+
+```
+
+After exploring a few datasets and cleaning data, I have decided to do  most of my analysis on the following Datasets.
+1.dailyact
+2.sleepday
+3.hourstep
+4.sleepday
+5.weight
+
+
+## BASIC summary statistics for our main tables 
+dailyact,sleepday ANd hourstep all had high participation while the datasets with weight and heartrate did not have as much participation. 
+```{r distinct users}
+n_distinct(dailyact$Id)
+n_distinct(sleepday$Id)
+n_distinct(weight$Id)
+n_distinct(heartsec$Id)
+n_distinct(hourstep$Id)
+```
+
+What are some quick summary statistics we'd want to know about each data frame?
+
+# Dailyact
+
+For the daily activity dataframe:  we find that the mean amount of Total steps a day was 7638. When we filter out the times when a person had no steps a day, we see that the average amount of steps a day was around 8300. Looking at statistics from the different types of minutes, we see that sedentary minutes far outweighs the rest.
+```{r}
+dailyact %>%  
+  select(TotalSteps,
+         TotalDistance,
+         ) %>%
+  summary()
+
+dailyact %>% select(TotalSteps,
+         TotalDistance,
+        ) %>%
+  filter(TotalSteps>0) %>% summary()
+
+### Now I want to look at sedentary minutes, and the different types of active minutes to draw conclusions.
+
+dailyact %>% select(SedentaryMinutes,LightlyActiveMinutes,FairlyActiveMinutes,VeryActiveMinutes) %>% summary()
+```
+# Sleepday
+For the sleep dataframe: we learned that the mean amount of sleep time was 419 minutes which corresponds to about 7 hours of sleep a day.
+```{r}
+sleepday %>%  
+  select(
+  TotalMinutesAsleep,
+  TotalTimeInBed) %>%
+  summary()
+```
+# Heartsec
+ In the heartsec dataframe, we see the average heartrate is about 77 bpm.
+```{r}
+heartsec %>% select(Value) %>% summary(mean)
+heartsec %>% group_by(Id) %>% summarize(mean(Value))
+
+```
+# Hourstep
+
+For hourstep, we see that Activty Hour is in a date time format. I want to split this. Then I will be able to get a count total total steps for time periods throughout the day.
+As we can see, the most steps happen form times 8 am to 6 pm. The highest amount of steps happens at 6 oclock.
+
+```{r}
+hourstep$Date<-as.Date(hourstep$ActivityHour)
+hourstep$Time<-format(as.POSIXct(hourstep$ActivityHour),format="%H:%M:%S")
+hourstep %>% group_by(Time) %>% summarize(sum(StepTotal))
+hour_step_mean_step_by_time<-hourstep %>% group_by(Time) %>% summarize(step_total=sum(StepTotal))
+is.tibble(hour_step_mean_step_by_time)
+hour_step_mean_step_by_time2<-as.data.frame(hour_step_mean_step_by_time)
+is.tibble(hour_step_mean_step_by_time2)
+
+
+ggplot(data=hour_step_mean_step_by_time2)+geom_point(mapping=aes(x=Time,y=step_total),color="red")+
+labs(title= "step_total throughout day")+
+theme(axis.text.x=element_text(angle=45))
+```
+
+# Weight
+
+we see that the average weight in pounds in women in 158 pounds.
+```{r}
+weight %>%select(WeightPounds) %>%  summary()
+
+```
+
+## Further Analysis
+1. Is there a relationship between steps taken in a day and sedentary minutes?
+```{r}
+ggplot(data=dailyact, aes(x=TotalSteps, y=SedentaryMinutes)) + geom_point() 
+ggplot(data=dailyact, aes(x=TotalSteps, y=VeryActiveMinutes)) + geom_point()
+cor(dailyact$TotalSteps,dailyact$VeryActiveMinutes)
+```
+We can see here that there is a correlation between how having more VeryActiveMinutes a participant had, the more Total Steps they had.
+
+2.Is there a correlation between then number of minutes someone sleeps and their steps taken in a day.
+```{r}
+# The first thing we had to do was inner join the dailyact and sleep datasets. I called this new datset z.
+
+z<-merge(dailyact,sleepday, by.x = c("Id","Date"), by.y = c("Id","Date"))
+
+ggplot(data=z, aes(x=TotalSteps, y=TotalMinutesAsleep)) + geom_point() 
+ggplot(data=z, aes(x=VeryActiveDistance, y=TotalMinutesAsleep)) + geom_point() 
+ggplot(data=z, aes(x=FairlyActiveMinutes, y=TotalMinutesAsleep)) + geom_point() 
+
+
+```
+
+There does not seem to be a correlation between the amount of sleep you get versus how active or non active you are. It also doesn't seem like there is much of a correlation on sleep and how active you are,
+
+3.Which day of the week are people most active?
+```{r}
+dailyact2<-dailyact
+dailyact2$weekday<-weekdays(dailyact2$Date)
+
+dailyact2  %>%  group_by(weekday) %>% summarise(mean(TotalSteps));
+
+ggplot(data=dailyact2,aes(x=weekday , y=TotalSteps))+geom_bar(stat="summary")
+```
+We can see that Saturday and Tuesday had the most mean Total Steps. Sunday was by far the least amount of mean TotalSteps.
+
+## Conclusions/ Analysis.
+
+1. Using the n_distinct function in R, we saw how People tended to use features such as tracking steps, calories and sleep. These users did not care too much about tracking their heart rate or weight.
+2.Depending on how accurate steps were tracked, the mean amount of steps per day per person is around 7638-8300 steps.
+3.The average amount of sleep a night was 7 hours.
+4.The average heart rate per second was 77 bpm.
+5.Although not many women tracked weight, for those who did, the average weight in pounds for women was 158 pounds.
+6.More steps taken by a person correlated to them having more active minutes through the day.
+7.The amount of sleep had by a person did not correlate to the amount of steps they had taken that day.
+8.The days with the most activity were Saturday and Tuesday, with Sunday being the least active. 
+
+## Recommendations
+1. I would like Bellabeat to make sure that as soon as people start using a device, they should set up the steps, calories, and sleep functions. Those are the most tracked statistics.
+2. Defining what a healthy weight for a women, or anyone, can vary. Therefore it made sense as to why most women did not track their weigh. However, for women who do want to gain or lose weight, they should still keep that feature in their. When setting up Bellabeat smart devices, Bellabeat should ask the women if they want their weight tracked.For toes who say no, they should not feel inclined to use that portion of the device. But for women that say yes, the women should then be allowed to tell the smart device what their goal is.
+3. If a person is below a certain amount of steps for a certain day, the Bellabeat smart device should set up a reminder that tells the user to be more active to at least get close to the average step count for a day.
+4. Bellabeat should encourage users to pick 3-4 days to be more active and then give that person reminders on those days to do something active. 
+5. The Bellabeat devices should give a person a reminder to go to sleep if the user chooses to set a time they would like to go to sleep.
+
+## Limitations to the Study 
+There was only 33 participants. Although this does comply with the central limit theorem to make our data approximately a normal distribution, we may want to find more data, in order, to get an ever better picture of how people use smart health technology.
